@@ -1,6 +1,6 @@
 {
   "name": "express-swagger-autogen",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "A library that auto generates swagger docs to your endpoints from express.",
   "type": "module",
   "main": "dist/autogen.js",
