@@ -5,8 +5,7 @@
     "skipLibCheck": true,
     "declaration": true,
     "esModuleInterop": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "CommonJS",
     "forceConsistentCasingInFileNames": true
   }
 }
