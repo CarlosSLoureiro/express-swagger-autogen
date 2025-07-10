@@ -168,7 +168,10 @@ const extractFirstPathName = (path: string): string => {
 const merge = (target: any, source: any) => {
   const result = { ...target };
   for (const [key, value] of Object.entries(source)) {
-    if (typeof result[key] === "object" && typeof value === "object" && result[key] !== null && value !== null) {
+    const isArray = Array.isArray(value);
+    const isObject = typeof result[key] === "object" && typeof value === "object" && result[key] !== null && value !== null;
+
+    if (isObject && !isArray) {
       result[key] = merge(result[key], value);
     } else {
       result[key] = value;
