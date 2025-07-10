@@ -1,9 +1,10 @@
 import { Router } from "express";
 import expressListEndpoints from "express-list-endpoints";
 import swaggerUi from "swagger-ui-express";
+import type { OpenAPI3 } from "openapi-typescript";
 
 type ExpressSwaggerAutogenDocsOptions = {
-  setup?: any;
+  setup?: Partial<OpenAPI3>;
   basePath?: string;
   endpoint?: string;
   validatePaths?: boolean;
@@ -14,7 +15,7 @@ type ExpressSwaggerAutogenDocsOptions = {
  *
  * @param {Router} router - The Express Router instance.
  * @param {ExpressSwaggerAutogenDocsOptions} [options] - Optional configuration options.
- * @param {any} [options.setup] - Custom setup for Swagger UI.
+ * @param {Partial<OpenAPI3>} [options.setup] - Custom OpenAPI3 setup for Swagger UI.
  * @param {string} [options.basePath] - Base path to prepend to all endpoints.
  * @param {string} [options.endpoint] - The endpoint where the Swagger UI will be served. Defaults to "/documentation".
  * @param {boolean} [options.validatePaths] - Whether to validate the paths defined in `options.paths` against the actual endpoints in the router. If true, it will throw an error if any path or method does not exist in the router endpoints.

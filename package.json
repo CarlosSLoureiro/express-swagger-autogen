@@ -1,6 +1,6 @@
 {
   "name": "express-swagger-autogen",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "description": "A library that auto generates swagger docs to your endpoints from express.",
   "main": "dist/autogen.js",
   "types": "dist/autogen.d.ts",
@@ -41,6 +41,7 @@
   "dependencies": {
     "express": "^5.1.0",
     "express-list-endpoints": "^7.1.1",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "openapi-typescript": "^7.8.0"
   }
 }

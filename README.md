@@ -101,7 +101,7 @@ try {
 ## Options
 | Option          | Type     | Default Value | Description                                                                 |
 |-----------------|----------|---------------|-----------------------------------------------------------------------------|
-| `setup`         | `object` | `{}`          | Your own swagger object setup. It will be merged with the default setup. |
+| `setup`         | `object` | `{}`          | Your own custom OpenAPI3 setup for Swagger UI. It will be merged with the default setup. |
 | `validatePaths` | `boolean` | `false`       | If true, it will validate the paths defined in `setup.paths`. If a path is defined in `setup.paths` but not in the router, it will throw an error. If false, it will only log a warning. |
 | `endpoint`      | `string` | `"/documentation"`  | The endpoint where the swagger UI will be served. If you want to change it, you can pass a different value. For example, if you want to serve the swagger UI at `/api-docs`, you can pass `"/api-docs"`  |
 | `basePath`     | `string` | `''`    | Base path to prepend to all endpoints in swagger. |
