@@ -2,6 +2,8 @@ import { Router } from "express";
 import expressListEndpoints from "express-list-endpoints";
 import swaggerUi from "swagger-ui-express";
 import type { OpenAPI3 } from "openapi-typescript";
+import { ExpressSwaggerAutogenUtils } from "./utils";
+import { ExpressSwaggerAutogenValidationError } from "./errors";
 
 type ExpressSwaggerAutogenDocsOptions = {
   setup?: Partial<OpenAPI3>;
@@ -39,10 +41,11 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
 
   if (options?.setup?.paths) {
     Object.entries(options.setup.paths).forEach(([path, setup]) => {
-      const endpoint = list.find((endpoint) => endpoint.path === path);
+      const normalizedPath = ExpressSwaggerAutogenUtils.normalizeSwaggerToExpressPath(path);
+      const endpoint = list.find((endpoint) => endpoint.path === normalizedPath);
 
       if (!endpoint) {
-        const message = `[express-swagger-autogen]: Path "${path}" defined in setup.paths does not exist in the router endpoints.`;
+        const message = `[express-swagger-autogen]: Path "${path}" defined in setup.paths does not exist in the router endpoints as "${normalizedPath}".`;
 
         console.warn(message);
 
@@ -54,7 +57,7 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
 
       Object.keys(setup).forEach((method) => {
         if (!endpoint.methods.includes(method.toUpperCase())) {
-          const message = `[express-swagger-autogen]: Method "${method}" for path "${path}" defined in setup.paths does not exist in the router endpoints.`;
+          const message = `[express-swagger-autogen]: Method "${method}" for path "${path}" defined in setup.paths does not exist in the router endpoint "${normalizedPath}".`;
 
           console.warn(message);
 
@@ -76,7 +79,7 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
         paths[path] = {};
       }
 
-      const pathParams = extractPathParams(path);
+      const pathParams = ExpressSwaggerAutogenUtils.extractPathParams(path);
 
       const parameters = pathParams
         .map(
@@ -117,7 +120,7 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
       };
 
       paths[path][method.toLowerCase()] = {
-        tags: [extractFirstPathName(options?.basePath ? path.slice(options.basePath.length) : path)],
+        tags: [ExpressSwaggerAutogenUtils.extractFirstPathName(options?.basePath ? path.slice(options.basePath.length) : path)],
         parameters,
         requestBody,
         responses: {
@@ -140,50 +143,18 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
   };
 
   const setup = {
-    ...(options?.setup ? merge(defaultSetup, options.setup) : defaultSetup),
-    paths: options?.setup?.paths ? merge(paths, options.setup.paths) : paths,
+    ...(options?.setup ? ExpressSwaggerAutogenUtils.merge(defaultSetup, options.setup) : defaultSetup),
+    paths: options?.setup?.paths ? ExpressSwaggerAutogenUtils.merge(paths, options.setup.paths) : paths,
   };
+
+  setup.paths = Object.fromEntries(
+    Object.entries(setup.paths).map(([path, value]) => [
+      ExpressSwaggerAutogenUtils.normalizeExpressToSwaggerPath(path),
+      value,
+    ])
+  );
 
   router.use(options.endpoint!, swaggerUi.serve, swaggerUi.setup(setup));
 
-  console.log(`[express-swagger-autogen]: Swagger documentation available at ${options.endpoint}`);
-}
-
-const extractPathParams = (path: string): string[] => {
-  const paramRegex = /:([a-zA-Z0-9_]+)/g;
-  const params: string[] = [];
-
-  let match: RegExpExecArray | null;
-  while ((match = paramRegex.exec(path)) !== null) {
-    params.push(match[1]);
-  }
-
-  return params;
-};
-
-const extractFirstPathName = (path: string): string => {
-  const firstSegment = path.split("/").filter((segment) => segment && !segment.startsWith(":"))[0];
-  return firstSegment || "";
-};
-
-const merge = (target: any, source: any) => {
-  const result = { ...target };
-  for (const [key, value] of Object.entries(source)) {
-    const isArray = Array.isArray(value);
-    const isObject = typeof result[key] === "object" && typeof value === "object" && result[key] !== null && value !== null;
-
-    if (isObject && !isArray) {
-      result[key] = merge(result[key], value);
-    } else {
-      result[key] = value;
-    }
-  }
-  return result;
-};
-
-export class ExpressSwaggerAutogenValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ExpressSwaggerAutogenValidationError";
-  }
+  console.log(`[express-swagger-autogen]: Swagger documentation available at "${options.endpoint}"`);
 }
