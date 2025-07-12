@@ -5,7 +5,7 @@ A library that auto generates swagger docs to your endpoints from express.
 ## Installation
 
 ```bash
-npm install express-swagger-autogen
+npm install express-swagger-autogen zod
 ```
 
 You must set these configs in your `tsconfig.json`:
@@ -62,7 +62,8 @@ expressSwaggerAutogen(router, config);
 
 ```js
 import express, { Request, Response } from "express";
-import expressSwaggerAutogen, { Documentation, StatusCodes, z } from "express-swagger-autogen";
+import z from "zod";
+import expressSwaggerAutogen, { Documentation, StatusCodes } from "express-swagger-autogen";
 
 const router = express.Router();
 

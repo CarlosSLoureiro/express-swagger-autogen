@@ -226,4 +226,4 @@ export function Documentation(documentation: HandlerDocumentation): Function {
   };
 }
 
-export { ExpressSwaggerAutogenValidationError, HandlerDocumentation, StatusCodes, z };
+export { ExpressSwaggerAutogenValidationError, HandlerDocumentation, StatusCodes };

@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
-import expressSwaggerAutogen, { Documentation, StatusCodes, z } from "../src/autogen"; /* replace with "express-swagger-autogen" */
+import z from "zod";
+import expressSwaggerAutogen, { Documentation, StatusCodes } from "../src/autogen"; /* replace with "express-swagger-autogen" */
 
 const router = express.Router();
 
