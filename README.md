@@ -8,6 +8,12 @@ A library that auto generates swagger docs to your endpoints from express.
 npm install express-swagger-autogen
 ```
 
+You must set these configs in your `tsconfig.json`:
+```json
+"emitDecoratorMetadata": true,
+"experimentalDecorators": true,
+```
+
 ## Usage
 
 1. You **must** use the `Router` instance from express.
@@ -21,9 +27,11 @@ import expressSwaggerAutogen from "express-swagger-autogen";
 const router = express.Router();
 
 router.get("/healthcheck", controller);
+router.get("/user/:id", controller);
 // others routes ...
 
 expressSwaggerAutogen(router);
+// Then the autogen will generate documentation for your endpoints also with path parameters.
 
 const app = express();
 app.use(router);
@@ -32,7 +40,7 @@ app.listen(3000, () => console.log("Server is running on http://localhost:3000")
 
 You may set some **configurations** as the second parameter of the autogen:
 
-1.  You own swagger object setup:
+1.  You own setup object:
 
 ```js
 const config = {
@@ -48,64 +56,68 @@ const config = {
 expressSwaggerAutogen(router, config);
 ```
 
-2. You also may edit some endpoint documentation by passing an object with the endpoint path as key and the documentation as value:
+2. You also may detail your endpoint documentation using the `Documentation` decorator:
 
 ```js
-router.get("/healthcheck", checkController);
-router.post("/login", loginController);
+import express, { Request, Response } from "express";
+import z from "zod";
+import expressSwaggerAutogen, { Documentation, StatusCodes } from "express-swagger-autogen";
 
-expressSwaggerAutogen(router, {
-    setup: {
-        paths: {
-            "/login": {
-                post: {
-                    summary: "User login with email and password",
-                    parameters: [],
-                    requestBody: { /* Your login request interface */ },
-                    responses: { /* Your login response interface */ },
-                    ... // other OpenAPI properties
-                },
-            },
-        },
-    },
+const router = express.Router();
+
+/* You may validate the schema inside your handler */
+const LoginSchema = z.object({
+  email: z.email("Invalid email"),
+  password: z.string().min(1, "Password is required"),
 });
 
-```
+abstract class UserController {
+  @Documentation({
+    summary: "User login",
+    description: "Endpoint for user login",
+    zod: {
+      requestBody: LoginSchema,
+      responses: {
+        [StatusCodes.OK]: z.void().describe("User logged in successfully"),
+        [StatusCodes.BAD_REQUEST]: z.object({
+          message: z.string().describe("Message describing the error").meta({
+            example: "Invalid email",
+          }),
+        }),
+        [StatusCodes.UNAUTHORIZED]: z.void().describe("Invalid credentials"),
+      },
+    },
+  })
+  static login(req: Request, res: Response) {
+    const parsed = LoginSchema.safeParse(req.body);
 
-3. The autogen will also validate your **endpoints** and **methods** from `setup.paths` and will dislay a warning if the endpoint set is not defined in your router instance. You also may enable the `validatePaths` flag to throw an error:
+    if (!parsed.success) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ message: parsed.error.message });
+    }
 
-```js
-router.get("/products", controller);
+    const { email, password } = parsed.data;
 
-try {
-    expressSwaggerAutogen(router, {
-        validatePaths: true,
-        setup: {
-            paths: {
-                "/products": {
-                    post: {
-                        summary: "Will list your products",
-                    },
-                },
-            },
-        },
-    });
-} catch (error) {
-    console.error("Error while setting up Swagger:", error);
-    // Method "post" for path "/products" defined in setup.paths does not exist in the router endpoints. 
+    /*
+    const user = repository.getUser(email, password);
+    if (!user) {
+        return res.status(StatusCodes.UNAUTHORIZED);
+    }
+    */
+
+    return res.status(StatusCodes.OK);
+  }
 }
 
+router.post("/user/login", UserController.login);
+
+expressSwaggerAutogen(router);
+
+const app = express();
+app.use(router);
+app.listen(3000, () => console.log("Server is running on http://localhost:3000"));
 ```
 
-
-## Options
-| Option          | Type     | Default Value | Description                                                                 |
-|-----------------|----------|---------------|-----------------------------------------------------------------------------|
-| `setup`         | `object` | `{}`          | Your own custom OpenAPI3 setup for Swagger UI. It will be merged with the default setup. |
-| `validatePaths` | `boolean` | `false`       | If true, it will validate the paths defined in `setup.paths`. If a path is defined in `setup.paths` but not in the router, it will throw an error. If false, it will only log a warning. |
-| `endpoint`      | `string` | `"/documentation"`  | The endpoint where the swagger UI will be served. If you want to change it, you can pass a different value. For example, if you want to serve the swagger UI at `/api-docs`, you can pass `"/api-docs"`  |
-| `basePath`     | `string` | `''`    | Base path to prepend to all endpoints in swagger. |
-
+#### [See some examples here about how to use.](https://github.com/CarlosSLoureiro/express-swagger-autogen/tree/main/examples)
 
 ## License
 
