@@ -9,6 +9,7 @@ npm install express-swagger-autogen
 ```
 
 You must set these configs in your `tsconfig.json`:
+
 ```json
 "emitDecoratorMetadata": true,
 "experimentalDecorators": true,
@@ -20,6 +21,7 @@ You must set these configs in your `tsconfig.json`:
 2. The autogen must be executed in the end your router stack.
 
 For example:
+
 ```js
 import express from "express";
 import expressSwaggerAutogen from "express-swagger-autogen";
@@ -44,13 +46,13 @@ You may set some **configurations** as the second parameter of the autogen:
 
 ```js
 const config = {
-    setup: {
-        openapi: "3.0.0",
-        info: {
-            title: 'API Name' || process.env.npm_package_name,
-            version: '1.0.0' || process.env.npm_package_version,
-        }
-    }
+  setup: {
+    openapi: "3.0.0",
+    info: {
+      title: "API Name" || process.env.npm_package_name,
+      version: "1.0.0" || process.env.npm_package_version,
+    },
+  },
 };
 
 expressSwaggerAutogen(router, config);
@@ -60,8 +62,7 @@ expressSwaggerAutogen(router, config);
 
 ```js
 import express, { Request, Response } from "express";
-import z from "zod";
-import expressSwaggerAutogen, { Documentation, StatusCodes } from "express-swagger-autogen";
+import expressSwaggerAutogen, { Documentation, StatusCodes, z } from "express-swagger-autogen";
 
 const router = express.Router();
 
