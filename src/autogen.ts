@@ -24,7 +24,7 @@ export type ExpressSwaggerAutogenDocsOptions = {
  * @param {Partial<OpenAPI3>} [options.setup] - Custom OpenAPI3 setup for Swagger UI.
  * @param {string} [options.basePath] - Base path to prepend to all endpoints.
  * @param {string} [options.endpoint] - The endpoint where the Swagger UI will be served. Defaults to "/documentation".
- * @param {boolean} [options.validatePaths] - Whether to validate the paths defined manually against the actual endpoints in the router. If true, it will throw an error if any path or method does not exist in the router endpoints. If false it will just warn in console.
+ * @param {boolean} [options.validatePaths] - Whether to validate the paths defined manually in options.setup against the actual endpoints in the router. If true, it will throw an error if any path or method does not exist in the router endpoints. If false it will just warn in console.
  */
 export default function expressSwaggerAutogen(router: Router, options?: ExpressSwaggerAutogenDocsOptions): void {
   // Validate the router instance
@@ -226,4 +226,4 @@ export function Documentation(documentation: HandlerDocumentation): Function {
   };
 }
 
-export { ExpressSwaggerAutogenValidationError, StatusCodes };
+export { ExpressSwaggerAutogenValidationError, HandlerDocumentation, StatusCodes };
