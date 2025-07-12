@@ -43,7 +43,7 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
 
   // If basePath is provided, prepend it to all paths
   if (options?.basePath) {
-    options.endpoint = `${options.basePath}${options.endpoint}`;
+    options.endpoint = `${options.endpoint}`;
 
     list = list.map((endpoint) => {
       return {
