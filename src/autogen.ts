@@ -1,15 +1,19 @@
 import { Router } from "express";
-import expressListEndpoints from "express-list-endpoints";
-import swaggerUi from "swagger-ui-express";
-import type { OpenAPI3 } from "openapi-typescript";
-import { ExpressSwaggerAutogenUtils } from "./utils";
-import { ExpressSwaggerAutogenValidationError } from "./errors";
 
-type ExpressSwaggerAutogenDocsOptions = {
+import { getReasonPhrase, StatusCodes } from "http-status-codes";
+import type { OpenAPI3, PathsObject } from "openapi-typescript";
+import swaggerUi from "swagger-ui-express";
+import z from "zod";
+import { createDocument } from "zod-openapi";
+import { ExpressSwaggerAutogenValidationError } from "./errors";
+import { ExpressSwaggerAutogenUtils, HandlerDocumentation } from "./utils";
+
+export type ExpressSwaggerAutogenDocsOptions = {
   setup?: Partial<OpenAPI3>;
   basePath?: string;
   endpoint?: string;
   validatePaths?: boolean;
+  includeCustomQueryParams?: boolean;
 };
 
 /**
@@ -20,17 +24,27 @@ type ExpressSwaggerAutogenDocsOptions = {
  * @param {Partial<OpenAPI3>} [options.setup] - Custom OpenAPI3 setup for Swagger UI.
  * @param {string} [options.basePath] - Base path to prepend to all endpoints.
  * @param {string} [options.endpoint] - The endpoint where the Swagger UI will be served. Defaults to "/documentation".
- * @param {boolean} [options.validatePaths] - Whether to validate the paths defined in `options.paths` against the actual endpoints in the router. If true, it will throw an error if any path or method does not exist in the router endpoints.
+ * @param {boolean} [options.validatePaths] - Whether to validate the paths defined manually against the actual endpoints in the router. If true, it will throw an error if any path or method does not exist in the router endpoints. If false it will just warn in console.
  */
 export default function expressSwaggerAutogen(router: Router, options?: ExpressSwaggerAutogenDocsOptions): void {
+  // Validate the router instance
+  if (!(router instanceof Router)) {
+    throw new Error("The first argument must be an instance of express.Router.");
+  }
+
+  // Set default options
   options = {
     ...options,
     endpoint: options?.endpoint || "/documentation",
   };
 
-  let list = expressListEndpoints(router);
+  // List all routes in the router
+  let list = ExpressSwaggerAutogenUtils.listRoutes(router);
 
+  // If basePath is provided, prepend it to all paths
   if (options?.basePath) {
+    options.endpoint = `${options.basePath}${options.endpoint}`;
+
     list = list.map((endpoint) => {
       return {
         ...endpoint,
@@ -39,27 +53,17 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
     });
   }
 
+  // Validate paths if validatePaths is true
   if (options?.setup?.paths) {
     Object.entries(options.setup.paths).forEach(([path, setup]) => {
       const normalizedPath = ExpressSwaggerAutogenUtils.normalizeSwaggerToExpressPath(path);
-      const endpoint = list.find((endpoint) => endpoint.path === normalizedPath);
-
-      if (!endpoint) {
-        const message = `[express-swagger-autogen]: Path "${path}" defined in setup.paths does not exist in the router endpoints as "${normalizedPath}".`;
-
-        console.warn(message);
-
-        if (options?.validatePaths) {
-          throw new ExpressSwaggerAutogenValidationError(message);
-        }
-        return;
-      }
-
       Object.keys(setup).forEach((method) => {
-        if (!endpoint.methods.includes(method.toUpperCase())) {
-          const message = `[express-swagger-autogen]: Method "${method}" for path "${path}" defined in setup.paths does not exist in the router endpoint "${normalizedPath}".`;
+        const endpoint = list.find((endpoint) => endpoint.path === normalizedPath && endpoint.method === method.toUpperCase());
 
-          console.warn(message);
+        if (!endpoint) {
+          const message = `Endpoint "${method.toUpperCase()} ${normalizedPath}" from "${path}" at setup.paths does not exist in the router.`;
+
+          ExpressSwaggerAutogenUtils.logger(message);
 
           if (options?.validatePaths) {
             throw new ExpressSwaggerAutogenValidationError(message);
@@ -69,69 +73,121 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
     });
   }
 
-  const paths = {} as any;
+  // Setup paths for documentation
+  const paths: Partial<PathsObject> = {};
 
   list.forEach((endpoint) => {
-    const methods = Object.values(endpoint.methods);
-    const path = endpoint.path;
-    methods.forEach((method) => {
-      if (!paths[path]) {
-        paths[path] = {};
-      }
+    const { method, path, handlers } = endpoint;
 
-      const pathParams = ExpressSwaggerAutogenUtils.extractPathParams(path);
+    const handlerWithDocs = handlers.find((handler) => handler?.documentation);
 
-      const parameters = pathParams
-        .map(
-          (param) =>
-            ({
-              name: param,
-              in: "path",
-              required: true,
-              schema: {
-                type: "string",
-              },
-            } as any)
-        )
-        .concat([
-          {
-            in: "query",
-            name: "params",
-            style: "form",
-            explode: true,
-            schema: {
-              type: "object",
-              additionalProperties: {
-                type: "string",
-              },
-            },
+    if (!paths[path]) {
+      paths[path] = {};
+    }
+
+    // Documentation for parameters
+    const pathParams = ExpressSwaggerAutogenUtils.extractPathParams(path);
+    const parameters: any[] = [];
+
+    parameters.push(
+      ...pathParams.map((param) =>
+        z.string().meta({
+          param: {
+            name: param,
+            in: "path",
+            required: true,
           },
-        ]);
+        })
+      )
+    );
 
-      const requestBody = ["POST", "PUT", "PATCH"].includes(method.toUpperCase()) && {
+    if (handlerWithDocs?.documentation?.zod?.params || handlerWithDocs?.documentation?.parameters) {
+      if (handlerWithDocs?.documentation?.parameters) {
+        parameters.push(...handlerWithDocs?.documentation?.parameters);
+      } else if (handlerWithDocs?.documentation?.zod?.params) {
+        parameters.push(...handlerWithDocs?.documentation?.zod?.params);
+      }
+    } else if (options?.includeCustomQueryParams) {
+      parameters.push(
+        z
+          .object({
+            search: z.string().optional().default("How to use auto generate api documentation?"),
+          })
+          .optional()
+          .meta({
+            param: {
+              in: "query",
+              name: "queryParams",
+              description: "Custom query parameters",
+              style: "form",
+              explode: true,
+            },
+          })
+      );
+    }
+
+    // Documentation for request body
+    let requestBody: any = handlerWithDocs?.documentation?.requestBody;
+
+    if (!requestBody && handlerWithDocs?.documentation?.zod?.requestBody) {
+      requestBody = {
+        required: true,
+        content: {
+          "application/json": {
+            schema: handlerWithDocs?.documentation?.zod?.requestBody,
+          },
+        },
+      };
+    }
+
+    if (!requestBody && ["POST", "PUT", "PATCH"].includes(method)) {
+      requestBody = {
         required: false,
         content: {
           "application/json": {
-            schema: {
-              type: "object",
+            schema: z.object({}),
+          },
+        },
+      };
+    }
+
+    // Documentation for responses
+    let responses: any = handlerWithDocs?.documentation?.responses;
+    if (!responses && handlerWithDocs?.documentation?.zod?.responses) {
+      responses = Object.fromEntries(
+        Object.entries(handlerWithDocs?.documentation?.zod?.responses).map(([status, schema]) => [
+          status,
+          {
+            description: schema?.description || getReasonPhrase(status),
+            content: !["null", "undefined", "void"].includes(schema.def.type) && {
+              "application/json": {
+                schema,
+              },
             },
           },
-        },
-      };
+        ])
+      );
+    }
 
-      paths[path][method.toLowerCase()] = {
-        tags: [ExpressSwaggerAutogenUtils.extractFirstPathName(options?.basePath ? path.slice(options.basePath.length) : path)],
-        parameters,
-        requestBody,
-        responses: {
-          200: {
-            description: "Success",
-          },
-        },
-      };
-    });
+    // Documentation tags
+    let tags: string[] = [];
+    if (handlerWithDocs?.documentation?.tags) {
+      tags = handlerWithDocs?.documentation?.tags;
+    } else {
+      tags = [ExpressSwaggerAutogenUtils.extractFirstPathName(options?.basePath ? path.slice(options.basePath.length) : path)];
+    }
+
+    // Assign the documentation to the path and method
+    paths[path][method.toLowerCase()] = {
+      ...handlerWithDocs?.documentation,
+      tags,
+      parameters,
+      requestBody,
+      responses,
+    };
   });
 
+  // Create the OpenAPI document
   const defaultSetup = {
     openapi: "3.0.0",
     info: {
@@ -147,14 +203,27 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
     paths: options?.setup?.paths ? ExpressSwaggerAutogenUtils.merge(paths, options.setup.paths) : paths,
   };
 
+  // Normalize paths to Swagger style
   setup.paths = Object.fromEntries(
-    Object.entries(setup.paths).map(([path, value]) => [
-      ExpressSwaggerAutogenUtils.normalizeExpressToSwaggerPath(path),
-      value,
-    ])
+    Object.entries(setup.paths).map(([path, value]) => [ExpressSwaggerAutogenUtils.normalizeExpressToSwaggerPath(path), value])
   );
 
-  router.use(options.endpoint!, swaggerUi.serve, swaggerUi.setup(setup));
+  // Serve the Swagger UI
+  router.use(options.endpoint!, swaggerUi.serve, swaggerUi.setup(createDocument(setup)));
 
-  console.log(`[express-swagger-autogen]: Swagger documentation available at "${options.endpoint}"`);
+  ExpressSwaggerAutogenUtils.logger(`Swagger documentation available at endpoint "${options.endpoint}"`);
 }
+
+/**
+ * Decorator to document a controller method.
+ *
+ * @param {HandlerDocumentation} documentation - The documentation object for the method.
+ * @returns {Function} - The decorator function.
+ */
+export function Documentation(documentation: HandlerDocumentation): Function {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    (descriptor.value as any).documentation = documentation;
+  };
+}
+
+export { ExpressSwaggerAutogenValidationError, StatusCodes };

@@ -6,6 +6,8 @@
     "declaration": true,
     "esModuleInterop": true,
     "module": "CommonJS",
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   }
 }

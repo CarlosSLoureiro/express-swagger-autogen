@@ -1,11 +1,14 @@
 {
   "name": "express-swagger-autogen",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "description": "A library that auto generates swagger docs to your endpoints from express.",
   "main": "dist/autogen.js",
   "types": "dist/autogen.d.ts",
   "scripts": {
-    "build": "tsc --project tsconfig.json"
+    "build": "tsc --project tsconfig.json",
+    "test:default": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/default.ts",
+    "test:withDecorators": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/with-decorators.ts",
+    "test:withDecoratorsValidation": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/with-decorators+validation.ts"
   },
   "author": {
     "name": "Carlos Loureiro",
@@ -36,12 +39,16 @@
   "devDependencies": {
     "@types/express": "^5.0.3",
     "@types/swagger-ui-express": "^4.1.8",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
     "express": "^5.1.0",
-    "express-list-endpoints": "^7.1.1",
+    "http-status-codes": "^2.3.0",
+    "openapi-typescript": "^7.8.0",
     "swagger-ui-express": "^5.0.1",
-    "openapi-typescript": "^7.8.0"
+    "zod": "^4.0.5",
+    "zod-openapi": "^5.1.0"
   }
 }
