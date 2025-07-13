@@ -1,4 +1,4 @@
-import { ExpressSwaggerAutogenUtils, HandlerDocumentation } from "utils";
+import { ExpressSwaggerAutogenUtils, HandlerDocumentation } from "./utils";
 
 /**
  * Decorator to document a controller method.
