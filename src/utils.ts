@@ -21,6 +21,8 @@ type ListedRoute = {
 };
 
 export abstract class ExpressSwaggerAutogenUtils {
+  static METADATA_KEY = Symbol("esa-handler-doc");
+
   static listRoutes(router: Router): ListedRoute[] {
     const rotas = [];
 

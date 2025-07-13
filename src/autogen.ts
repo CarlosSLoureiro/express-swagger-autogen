@@ -1,3 +1,5 @@
+import "reflect-metadata";
+
 import { Router } from "express";
 
 import { getReasonPhrase, StatusCodes } from "http-status-codes";
@@ -7,6 +9,8 @@ import z from "zod";
 import { createDocument } from "zod-openapi";
 import { ExpressSwaggerAutogenValidationError } from "./errors";
 import { ExpressSwaggerAutogenUtils, HandlerDocumentation } from "./utils";
+
+export { Documentation } from "./decorator";
 
 export type ExpressSwaggerAutogenDocsOptions = {
   setup?: Partial<OpenAPI3>;
@@ -78,7 +82,9 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
   list.forEach((endpoint) => {
     const { method, path, handlers } = endpoint;
 
-    const handlerWithDocs = handlers.find((handler) => handler?.documentation);
+    const documentation: HandlerDocumentation = handlers
+      .map((handler) => Reflect.getMetadata(ExpressSwaggerAutogenUtils.METADATA_KEY, handler))
+      .find((doc) => doc);
 
     if (!paths[path]) {
       paths[path] = {};
@@ -100,11 +106,11 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
       )
     );
 
-    if (handlerWithDocs?.documentation?.zod?.params || handlerWithDocs?.documentation?.parameters) {
-      if (handlerWithDocs?.documentation?.parameters) {
-        parameters.push(...handlerWithDocs?.documentation?.parameters);
-      } else if (handlerWithDocs?.documentation?.zod?.params) {
-        parameters.push(...handlerWithDocs?.documentation?.zod?.params);
+    if (documentation?.zod?.params || documentation?.parameters) {
+      if (documentation?.parameters) {
+        parameters.push(...documentation?.parameters);
+      } else if (documentation?.zod?.params) {
+        parameters.push(...documentation?.zod?.params);
       }
     } else if (options?.includeCustomQueryParams) {
       parameters.push(
@@ -126,14 +132,14 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
     }
 
     // Documentation for request body
-    let requestBody: any = handlerWithDocs?.documentation?.requestBody;
+    let requestBody: any = documentation?.requestBody;
 
-    if (!requestBody && handlerWithDocs?.documentation?.zod?.requestBody) {
+    if (!requestBody && documentation?.zod?.requestBody) {
       requestBody = {
         required: true,
         content: {
           "application/json": {
-            schema: handlerWithDocs?.documentation?.zod?.requestBody,
+            schema: documentation?.zod?.requestBody,
           },
         },
       };
@@ -151,10 +157,10 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
     }
 
     // Documentation for responses
-    let responses: any = handlerWithDocs?.documentation?.responses;
-    if (!responses && handlerWithDocs?.documentation?.zod?.responses) {
+    let responses: any = documentation?.responses;
+    if (!responses && documentation?.zod?.responses) {
       responses = Object.fromEntries(
-        Object.entries(handlerWithDocs?.documentation?.zod?.responses).map(([status, schema]) => [
+        Object.entries(documentation?.zod?.responses).map(([status, schema]) => [
           status,
           {
             description: schema?.description || getReasonPhrase(status),
@@ -168,17 +174,25 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
       );
     }
 
+    if (!responses || Object.keys(responses).length === 0) {
+      responses = {
+        200: {
+          description: "Successful",
+        },
+      };
+    }
+
     // Documentation tags
     let tags: string[] = [];
-    if (handlerWithDocs?.documentation?.tags) {
-      tags = handlerWithDocs?.documentation?.tags;
+    if (documentation?.tags) {
+      tags = documentation?.tags;
     } else {
       tags = [ExpressSwaggerAutogenUtils.extractFirstPathName(options?.basePath ? path.slice(options.basePath.length) : path)];
     }
 
     // Assign the documentation to the path and method
     paths[path][method.toLowerCase()] = {
-      ...handlerWithDocs?.documentation,
+      ...documentation,
       tags,
       parameters,
       requestBody,
@@ -211,18 +225,6 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
   router.use(options.endpoint!, swaggerUi.serve, swaggerUi.setup(createDocument(setup)));
 
   ExpressSwaggerAutogenUtils.logger(`Swagger documentation available at endpoint "${options.endpoint}"`);
-}
-
-/**
- * Decorator to document a controller method.
- *
- * @param {HandlerDocumentation} documentation - The documentation object for the method.
- * @returns {Function} - The decorator function.
- */
-export function Documentation(documentation: HandlerDocumentation): Function {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    (descriptor.value as any).documentation = documentation;
-  };
 }
 
 export { ExpressSwaggerAutogenValidationError, HandlerDocumentation, StatusCodes };
