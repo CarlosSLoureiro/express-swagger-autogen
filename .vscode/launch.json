@@ -24,6 +24,14 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "test:withDecoratorsValidation"],
       "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug with Decorators + Validation + Arrow Handler Example",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "test:withDecoratorsValidationSecurityArrowHandler"],
+      "console": "integratedTerminal"
     }
   ]
 }

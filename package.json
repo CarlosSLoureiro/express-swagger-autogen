@@ -9,7 +9,7 @@
     "test:default": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/default.ts",
     "test:withDecorators": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/with-decorators.ts",
     "test:withDecoratorsValidation": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/with-decorators+validation.ts",
-    "test:withNonStaticClass": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/with-non-static-class.ts"
+    "test:withDecoratorsValidationSecurityArrowHandler": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/with-decorators+validation+security+arrow+handler.ts"
   },
   "author": {
     "name": "Carlos Loureiro",
