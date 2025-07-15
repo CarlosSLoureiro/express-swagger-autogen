@@ -71,8 +71,14 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
           const message = `Endpoint "${method.toUpperCase()} ${normalizedPath}" from "${path}" at setup.paths does not exist in the router.`;
 
           const { deprecateNotFoundPaths = true } = options;
-          if (deprecateNotFoundPaths && !("deprecated" in setup[method])) {
-            setup[method].deprecated = true;
+          const hasDeprecated = "deprecated" in setup[method];
+
+          if (hasDeprecated && setup[method].deprecated) {
+            return;
+          }
+
+          if (!hasDeprecated) {
+            setup[method].deprecated = deprecateNotFoundPaths;
           }
 
           if (!options?.disableLogger) {
