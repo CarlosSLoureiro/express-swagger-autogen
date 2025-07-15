@@ -12,6 +12,8 @@ import { ExpressSwaggerAutogenUtils, HandlerDocumentation } from "./utils";
 
 export { Documentation } from "./decorator";
 
+const expressVersion = require("express/package.json").version;
+
 export type ExpressSwaggerAutogenDocsOptions = {
   setup?: Partial<OpenAPI3>;
   basePath?: string;
@@ -36,8 +38,9 @@ export type ExpressSwaggerAutogenDocsOptions = {
  * @param {boolean} [options.includeCustomQueryParams] - Whether to include custom query parameters in the documentation. Defaults to false.
  */
 export default function expressSwaggerAutogen(router: Router, options?: ExpressSwaggerAutogenDocsOptions): void {
-  // Validate the router instance
-  if (!(router instanceof Router)) {
+  // Validate the router instance only if Express version is >= 5
+  const majorVersion = parseInt(expressVersion.split(".")[0], 10);
+  if (majorVersion >= 5 && !(router instanceof Router)) {
     throw new Error("The first argument must be an instance of express.Router.");
   }
 
