@@ -17,6 +17,8 @@ export type ExpressSwaggerAutogenDocsOptions = {
   basePath?: string;
   endpoint?: string;
   validatePaths?: boolean;
+  disableLogger?: boolean;
+  deprecateNotFoundPaths?: boolean;
   includeCustomQueryParams?: boolean;
 };
 
@@ -29,6 +31,8 @@ export type ExpressSwaggerAutogenDocsOptions = {
  * @param {string} [options.basePath] - Base path to prepend to all endpoints.
  * @param {string} [options.endpoint] - The endpoint where the Swagger UI will be served. Defaults to "/documentation".
  * @param {boolean} [options.validatePaths] - Whether to validate the paths defined manually in options.setup against the actual endpoints in the router. If true, it will throw an error if any path or method does not exist in the router endpoints. If false it will just warn in console.
+ * @param {boolean} [options.disableLogger] - Whether to disable the logger. Defaults to false.
+ * @param {boolean} [options.deprecateNotFoundPaths] - Whether to deprecate paths that are not found in the router. Defaults to true.
  * @param {boolean} [options.includeCustomQueryParams] - Whether to include custom query parameters in the documentation. Defaults to false.
  */
 export default function expressSwaggerAutogen(router: Router, options?: ExpressSwaggerAutogenDocsOptions): void {
@@ -66,7 +70,14 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
         if (!endpoint) {
           const message = `Endpoint "${method.toUpperCase()} ${normalizedPath}" from "${path}" at setup.paths does not exist in the router.`;
 
-          ExpressSwaggerAutogenUtils.logger(message);
+          const { deprecateNotFoundPaths = true } = options;
+          if (deprecateNotFoundPaths && !("deprecated" in setup[method])) {
+            setup[method].deprecated = true;
+          }
+
+          if (!options?.disableLogger) {
+            ExpressSwaggerAutogenUtils.logger(message);
+          }
 
           if (options?.validatePaths) {
             throw new ExpressSwaggerAutogenValidationError(message);
@@ -224,7 +235,9 @@ export default function expressSwaggerAutogen(router: Router, options?: ExpressS
   // Serve the Swagger UI
   router.use(options.endpoint!, swaggerUi.serve, swaggerUi.setup(createDocument(setup)));
 
-  ExpressSwaggerAutogenUtils.logger(`Swagger documentation available at endpoint "${options.endpoint}"`);
+  if (!options?.disableLogger) {
+    ExpressSwaggerAutogenUtils.logger(`Swagger documentation available at endpoint "${options.endpoint}"`);
+  }
 }
 
 export { ExpressSwaggerAutogenValidationError, HandlerDocumentation, StatusCodes };
