@@ -6,10 +6,9 @@
   "types": "dist/autogen.d.ts",
   "scripts": {
     "build": "tsc --project tsconfig.json",
-    "test:default": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/default.ts",
-    "test:withDecorators": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/with-decorators.ts",
-    "test:withDecoratorsValidation": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/with-decorators+validation.ts",
-    "test:withDecoratorsValidationSecurityArrowHandler": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register ./examples/with-decorators+validation+security+arrow+handler.ts"
+    "example": "ts-node-dev --project tsconfig.json -r tsconfig-paths/register",
+    "test": "playwright test",
+    "test:debug": "playwright test --debug"
   },
   "author": {
     "name": "Carlos Loureiro",
@@ -38,6 +37,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
     "@types/express": "^5.0.3",
     "@types/swagger-ui-express": "^4.1.8",
     "ts-node-dev": "^2.0.0",

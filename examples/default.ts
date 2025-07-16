@@ -11,7 +11,7 @@ abstract class ProductController {
     res.status(201).json({ status: "created" });
   }
   static delete(req: Request, res: Response) {
-    res.status(404);
+    res.status(404).json();
   }
   static buy(req: Request, res: Response) {
     res.status(200).json({ method: req.params.method });
@@ -42,5 +42,8 @@ router.put("/user/update", UserController.update);
 expressSwaggerAutogen(router);
 
 const app = express();
+app.use(express.json());
 app.use(router);
-app.listen(3000, () => console.log("Server is running on http://localhost:3000"));
+
+const port = process.argv.find((arg) => arg.startsWith("--port="))?.split("=")[1] || 3000;
+app.listen(port, () => console.log(`Server is running on http://localhost:${port}`));
