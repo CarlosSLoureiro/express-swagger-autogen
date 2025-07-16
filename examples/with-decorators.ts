@@ -34,7 +34,6 @@ abstract class ProductController {
 
   @Documentation({
     summary: "Create a new product",
-    description: "Endpoint to check the health of the service",
     zod: {
       requestBody: z.object({
         status: z.string().describe("Status of the service"),
@@ -60,7 +59,7 @@ abstract class ProductController {
     },
   })
   static delete(req: Request, res: Response) {
-    res.status(StatusCodes.NOT_FOUND);
+    res.status(StatusCodes.NOT_FOUND).json();
   }
 
   @Documentation({
@@ -123,8 +122,8 @@ abstract class UserController {
   }
 
   @Documentation({
-    summary: "User logout",
-    description: "Endpoint for user logout",
+    summary: "Get user purchases",
+    description: "Endpoint to get user purchases",
     parameters: [
       {
         in: "query",
@@ -157,8 +156,28 @@ abstract class UserController {
     res.status(200).json({ purchases: [] });
   }
 
-  // Not manually documented, will use default documentation
+  @Documentation({
+    summary: "Update user information",
+    zod: {
+      requestBody: z.object({
+        name: z.string().describe("Name of the user").optional().meta({
+          example: "Carlos Loureiro",
+        }),
+        age: z.number().describe("Age of the user").optional().meta({
+          example: 26,
+        }),
+        position: z.string().describe("Position of the user").optional().meta({
+          example: "Software Engineer",
+        }),
+      }),
+    },
+  })
   static update(req: Request, res: Response) {
+    res.status(200).json({ user: req.body });
+  }
+
+  // Not manually documented, will use default documentation
+  static logout(req: Request, res: Response) {
     res.status(200).json({ user: req.body });
   }
 }
@@ -171,9 +190,13 @@ router.post("/product/:id/buy/:method", ProductController.buy);
 router.post("/user/login", UserController.login);
 router.get("/user/purchases", UserController.purchases);
 router.put("/user/update", UserController.update);
+router.post("/user/logout", UserController.logout);
 
 expressSwaggerAutogen(router);
 
 const app = express();
+app.use(express.json());
 app.use(router);
-app.listen(3000, () => console.log("Server is running on http://localhost:3000"));
+
+const port = process.argv.find((arg) => arg.startsWith("--port="))?.split("=")[1] || 3000;
+app.listen(port, () => console.log(`Server is running on http://localhost:${port}`));

@@ -4,34 +4,18 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug Default Example",
+      "name": "Debug Example with File",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "test:default"],
+      "runtimeArgs": ["run", "example", "--", "${input:fileName}"],
       "console": "integratedTerminal"
-    },
+    }
+  ],
+  "inputs": [
     {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug with Decorators Example",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "test:withDecorators"],
-      "console": "integratedTerminal"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug with Decorators + Validation Example",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "test:withDecoratorsValidation"],
-      "console": "integratedTerminal"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug with Decorators + Validation + Arrow Handler Example",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "test:withDecoratorsValidationSecurityArrowHandler"],
-      "console": "integratedTerminal"
+      "id": "fileName",
+      "type": "promptString",
+      "description": "Example Filename:",
+      "default": "./examples/default.ts"
     }
   ]
 }
